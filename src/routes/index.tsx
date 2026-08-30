@@ -128,7 +128,7 @@ function Reveal({
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           el.classList.add("is-visible");
           observer.disconnect();
         }
