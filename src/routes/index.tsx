@@ -1,10 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, type ReactNode } from "react";
-import { ArrowUpRight, Github, Star, GitFork } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  ArrowUpRight,
+  Github,
+  Star,
+  GitFork,
+  Search,
+  RefreshCw,
+  Lock,
+  Globe,
+} from "lucide-react";
 
-import heliosImg from "@/assets/app-helios.jpg";
-import nebulaImg from "@/assets/app-nebula.jpg";
-import prismImg from "@/assets/app-prism.jpg";
+import { getPortfolio, type Repo } from "@/lib/github.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,13 +22,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Vorqix A.I is an independent studio engineering open-source AI systems on GitHub and production applications on Lovable.",
+          "Vorqix A.I is an independent studio engineering AI systems, automation tooling and production software. Browse the live repository index.",
       },
       { property: "og:title", content: "Vorqix A.I — Machine Intelligence, Engineered" },
       {
         property: "og:description",
         content:
-          "Open-source AI systems on GitHub. Production applications on Lovable. The work of Vorqix A.I.",
+          "A live index of the systems, tools and applications engineered by Vorqix A.I.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -28,80 +37,26 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-/* ------------------------------ data ------------------------------ */
+/* ---------------------------- helpers ---------------------------- */
 
-const githubProjects = [
-  {
-    index: "01",
-    tag: "Inference",
-    name: "meridian-engine",
-    description:
-      "A zero-dependency tensor runtime that compiles to 4-bit kernels for edge inference.",
-    stars: "24.1k",
-    forks: "1.9k",
-    stack: ["Rust", "CUDA", "MLIR"],
-  },
-  {
-    index: "02",
-    tag: "Agents",
-    name: "cortex-orchestrator",
-    description:
-      "Deterministic multi-agent orchestration with observable, replayable execution traces.",
-    stars: "9.8k",
-    forks: "742",
-    stack: ["TypeScript", "gRPC", "Redis"],
-  },
-  {
-    index: "03",
-    tag: "Vision",
-    name: "lumen-diffusion",
-    description:
-      "Real-time latent diffusion pipeline with a single-command CUDA backend and sub-80ms frames.",
-    stars: "5.4k",
-    forks: "388",
-    stack: ["PyTorch", "CUDA", "ONNX"],
-  },
-  {
-    index: "04",
-    tag: "Memory",
-    name: "vectorfield-db",
-    description:
-      "An embedded vector store with HNSW indexing, tuned for dense retrieval at scale.",
-    stars: "12.7k",
-    forks: "910",
-    stack: ["Rust", "SIMD", "SQLite"],
-  },
-];
+function titleize(slug: string) {
+  return slug
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
-const lovableApps = [
-  {
-    name: "Helios Analytics",
-    status: "Live",
-    description: "Real-time model observability for production LLM fleets.",
-    image: heliosImg,
-  },
-  {
-    name: "Nebula Copilot",
-    status: "Live",
-    description: "A context-aware coding companion with persistent memory.",
-    image: nebulaImg,
-  },
-  {
-    name: "Prism Studio",
-    status: "Beta",
-    description: "A text-to-image atelier with fine-grained style control.",
-    image: prismImg,
-  },
-];
-
-const stats = [
-  { value: "52k+", label: "GitHub stars" },
-  { value: "38", label: "Public repositories" },
-  { value: "09", label: "Live applications" },
-  { value: "04", label: "Years building" },
-];
-
-/* --------------------------- reveal hook --------------------------- */
+function relative(iso: string) {
+  const diff = Date.now() - Date.parse(iso);
+  const day = 86_400_000;
+  if (diff < day) return "today";
+  const d = Math.round(diff / day);
+  if (d < 30) return `${d}d ago`;
+  const m = Math.round(d / 30);
+  if (m < 12) return `${m}mo ago`;
+  return `${Math.round(m / 12)}y ago`;
+}
 
 function Reveal({
   children,
@@ -124,7 +79,7 @@ function Reveal({
           observer.disconnect();
         }
       },
-      { threshold: 0.15 },
+      { threshold: 0.12 },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -140,6 +95,52 @@ function Reveal({
 /* ------------------------------ page ------------------------------ */
 
 function Index() {
+  const fetchPortfolio = useServerFn(getPortfolio);
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["portfolio"],
+    queryFn: () => fetchPortfolio(),
+    staleTime: 5 * 60_000,
+  });
+
+  const [query, setQuery] = useState("");
+  const [language, setLanguage] = useState<string | null>(null);
+  const [sort, setSort] = useState<"recent" | "name" | "stars">("recent");
+  const [limit, setLimit] = useState(9);
+
+  const repos: Repo[] = data?.repos ?? [];
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = repos.filter((r) => {
+      const matchesQuery =
+        q === "" ||
+        r.name.toLowerCase().includes(q) ||
+        (r.description ?? "").toLowerCase().includes(q) ||
+        (r.language ?? "").toLowerCase().includes(q);
+      const matchesLang = !language || r.language === language;
+      return matchesQuery && matchesLang;
+    });
+    const sorted = [...filtered];
+    if (sort === "name") sorted.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === "stars") sorted.sort((a, b) => b.stars - a.stars);
+    return sorted;
+  }, [repos, query, language, sort]);
+
+  const shown = visible.slice(0, limit);
+
+  const stats = [
+    { value: String(data?.totalRepos ?? "—"), label: "Projects shipped" },
+    { value: String(data?.languages.length ?? "—"), label: "Languages in play" },
+    {
+      value: String(repos.filter((r) => r.homepage).length || "—"),
+      label: "Live deployments",
+    },
+    {
+      value: data ? `${new Date(data.profile.createdAt).getFullYear()}` : "—",
+      label: "Building since",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* nav */}
@@ -154,24 +155,24 @@ function Index() {
             </span>
           </a>
           <div className="hidden items-center gap-9 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground md:flex">
-            <a href="#github" className="transition-colors hover:text-foreground">
-              GitHub
+            <a href="#work" className="transition-colors hover:text-foreground">
+              Work
             </a>
-            <a href="#apps" className="transition-colors hover:text-foreground">
-              Lovable
+            <a href="#index" className="transition-colors hover:text-foreground">
+              Index
             </a>
             <a href="#about" className="transition-colors hover:text-foreground">
               Studio
             </a>
           </div>
           <a
-            href="https://github.com"
+            href={data?.profile.url ?? "https://github.com"}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] text-foreground transition-colors hover:bg-ink hover:text-ink-foreground hover:border-ink"
+            className="inline-flex items-center gap-2 border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] text-foreground transition-colors hover:border-ink hover:bg-ink hover:text-ink-foreground"
           >
             <Github className="size-3.5" />
-            Follow
+            Profile
           </a>
         </nav>
       </header>
@@ -181,50 +182,48 @@ function Index() {
         <Reveal>
           <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
             <span className="inline-block h-px w-10 bg-primary" />
-            Independent AI studio — est. 2022
+            Independent AI studio
           </div>
         </Reveal>
         <Reveal delay={120}>
           <h1 className="mt-10 max-w-[18ch] font-display text-5xl leading-[1.02] font-medium tracking-tight text-balance md:text-7xl">
             Machine intelligence,{" "}
-            <em className="text-primary not-italic md:italic">engineered</em> with
-            intent — and shipped.
+            <em className="text-primary not-italic md:italic">engineered</em> with intent —
+            and shipped.
           </h1>
         </Reveal>
         <div className="mt-12 flex flex-col justify-between gap-10 border-t border-border pt-10 md:flex-row md:items-end">
           <Reveal delay={240}>
             <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground md:text-lg">
-              Vorqix A.I designs and builds open-source AI systems on GitHub and
-              production-grade applications on Lovable. Every project is measured
-              by one standard: does it hold up in the real world.
+              {data?.profile.bio ??
+                "Vorqix A.I designs and builds AI systems, automation tooling and production software. Everything below is pulled live from the studio's working repositories — no mockups, no placeholders."}
             </p>
           </Reveal>
           <Reveal delay={360}>
             <div className="flex flex-wrap gap-3">
               <a
-                href="#github"
+                href="#work"
                 className="inline-flex items-center gap-2 bg-ink px-6 py-3.5 font-mono text-[11px] uppercase tracking-[0.15em] text-ink-foreground transition-colors hover:bg-primary"
               >
                 Explore the work
                 <ArrowUpRight className="size-3.5" />
               </a>
               <a
-                href="#apps"
+                href="#index"
                 className="inline-flex items-center gap-2 border border-foreground/20 px-6 py-3.5 font-mono text-[11px] uppercase tracking-[0.15em] text-foreground transition-colors hover:border-foreground"
               >
-                Live applications
+                Full index
               </a>
             </div>
           </Reveal>
         </div>
 
-        {/* stats */}
         <Reveal delay={480}>
           <div className="mt-20 grid grid-cols-2 border border-border md:grid-cols-4">
             {stats.map((s, i) => (
               <div
                 key={s.label}
-                className={`px-6 py-7 ${i % 2 === 1 ? "border-l border-border" : ""} ${i > 1 ? "border-t border-border md:border-t-0" : ""} ${i > 0 ? "md:border-l md:border-border" : ""} ${i === 2 ? "md:border-l" : ""}`}
+                className={`px-6 py-7 ${i % 2 === 1 ? "border-l border-border" : ""} ${i > 1 ? "border-t border-border md:border-t-0" : ""} ${i > 0 ? "md:border-l md:border-border" : ""}`}
               >
                 <div className="font-display text-3xl font-medium tabular-nums md:text-4xl">
                   {s.value}
@@ -238,162 +237,202 @@ function Index() {
         </Reveal>
       </section>
 
-      {/* github projects */}
-      <section id="github" className="mx-auto max-w-6xl px-6 py-20 md:py-28">
+      {/* work / live index */}
+      <section id="work" className="mx-auto max-w-6xl px-6 py-20 md:py-28">
         <Reveal>
-          <div className="mb-14 flex items-end justify-between border-b border-foreground/15 pb-6">
+          <div className="mb-10 flex items-end justify-between border-b border-foreground/15 pb-6">
             <div>
               <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-primary">
-                I. Open source
+                I. The work
               </div>
               <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
-                Selected repositories
+                Live project index
               </h2>
             </div>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
             >
-              github.com/vorqix
-              <ArrowUpRight className="size-3.5" />
-            </a>
+              <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              Sync
+            </button>
           </div>
         </Reveal>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {githubProjects.map((p, i) => (
-            <Reveal key={p.name} delay={i * 80}>
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noreferrer"
-                className="group flex h-full flex-col border border-border bg-card p-8 transition-all duration-300 hover:border-foreground/40 hover:bg-background"
+        {/* controls */}
+        <div id="index" className="mb-10 flex flex-col gap-5">
+          <div className="flex items-center gap-3 border border-border bg-card px-4 py-3">
+            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setLimit(9);
+              }}
+              placeholder="Search projects, languages, descriptions…"
+              aria-label="Search projects"
+              className="w-full bg-transparent font-mono text-[13px] outline-none placeholder:text-muted-foreground/70"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-baseline gap-4">
-                    <span className="font-mono text-[11px] tabular-nums text-primary">
-                      {p.index}
-                    </span>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                      {p.tag}
-                    </span>
-                  </div>
-                  <ArrowUpRight className="size-4 text-muted-foreground transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
-                </div>
-                <h3 className="mt-8 font-display text-2xl font-medium tracking-tight md:text-[1.7rem]">
-                  {p.name}
-                </h3>
-                <p className="mt-3 max-w-[48ch] flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
-                  {p.description}
-                </p>
-                <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
-                    {p.stack.map((t) => (
-                      <span key={t}>{t}</span>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-4 font-mono text-[11px] tabular-nums text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Star className="size-3.5 text-primary" />
-                      {p.stars}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <GitFork className="size-3.5" />
-                      {p.forks}
-                    </span>
-                  </div>
-                </div>
-              </a>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+                Clear
+              </button>
+            )}
+          </div>
 
-      {/* lovable apps */}
-      <section id="apps" className="border-y border-border bg-secondary/40">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <Reveal>
-            <div className="mb-14 flex items-end justify-between border-b border-foreground/15 pb-6">
-              <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-primary">
-                  II. Applications
-                </div>
-                <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
-                  Built with Lovable
-                </h2>
-              </div>
-              <span className="hidden font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground md:block">
-                In production
-              </span>
-            </div>
-          </Reveal>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {lovableApps.map((app, i) => (
-              <Reveal key={app.name} delay={i * 100}>
-                <a
-                  href="#apps"
-                  className="group block border border-border bg-card transition-all duration-300 hover:border-foreground/40"
-                >
-                  <div className="overflow-hidden border-b border-border">
-                    <img
-                      src={app.image}
-                      alt={`${app.name} — ${app.description}`}
-                      width={1024}
-                      height={768}
-                      loading="lazy"
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-display text-lg font-medium tracking-tight">
-                        {app.name}
-                      </h3>
-                      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
-                        <span className="animate-pulse-dot inline-block size-1.5 rounded-full bg-primary" />
-                        {app.status}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm leading-relaxed text-pretty text-muted-foreground">
-                      {app.description}
-                    </p>
-                  </div>
-                </a>
-              </Reveal>
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterChip active={language === null} onClick={() => setLanguage(null)}>
+              All
+            </FilterChip>
+            {(data?.languages ?? []).map((l) => (
+              <FilterChip
+                key={l}
+                active={language === l}
+                onClick={() => {
+                  setLanguage(language === l ? null : l);
+                  setLimit(9);
+                }}
+              >
+                {l}
+              </FilterChip>
             ))}
+            <span className="ml-auto flex items-center gap-2">
+              {(["recent", "stars", "name"] as const).map((s) => (
+                <FilterChip key={s} active={sort === s} onClick={() => setSort(s)}>
+                  {s}
+                </FilterChip>
+              ))}
+            </span>
           </div>
         </div>
+
+        {error && (
+          <div className="border border-destructive/40 bg-destructive/5 p-6 font-mono text-[12px] text-destructive">
+            Could not load the project index. {(error as Error).message}
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-56 animate-pulse border border-border bg-card" />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {shown.map((r, i) => (
+                <Reveal key={r.id} delay={Math.min(i, 5) * 60}>
+                  <a
+                    href={r.homepage ?? r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex h-full flex-col border border-border bg-card p-8 transition-all duration-300 hover:border-foreground/40 hover:bg-background"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-baseline gap-4">
+                        <span className="font-mono text-[11px] tabular-nums text-primary">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                          {r.language ?? "System"}
+                        </span>
+                      </div>
+                      <ArrowUpRight className="size-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                    </div>
+                    <h3 className="mt-8 font-display text-2xl font-medium tracking-tight md:text-[1.7rem]">
+                      {titleize(r.name)}
+                    </h3>
+                    <p className="mt-3 max-w-[48ch] flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
+                      {r.description ?? "An internal system under active development."}
+                    </p>
+                    <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5 font-mono text-[11px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-2">
+                        {r.isPrivate ? (
+                          <>
+                            <Lock className="size-3.5" /> Private
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="size-3.5 text-primary" /> Public
+                          </>
+                        )}
+                        <span className="text-muted-foreground/60">·</span>
+                        {relative(r.updatedAt)}
+                      </span>
+                      <span className="flex items-center gap-4 tabular-nums">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Star className="size-3.5 text-primary" />
+                          {r.stars}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <GitFork className="size-3.5" />
+                          {r.forks}
+                        </span>
+                      </span>
+                    </div>
+                  </a>
+                </Reveal>
+              ))}
+            </div>
+
+            {visible.length === 0 && (
+              <p className="border border-border bg-card p-10 text-center font-mono text-[12px] uppercase tracking-[0.18em] text-muted-foreground">
+                No projects match that filter
+              </p>
+            )}
+
+            {limit < visible.length && (
+              <div className="mt-10 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setLimit((l) => l + 9)}
+                  className="inline-flex items-center gap-2 border border-foreground/20 px-6 py-3.5 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors hover:bg-ink hover:text-ink-foreground"
+                >
+                  Load more — {visible.length - limit} remaining
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </section>
 
       {/* statement */}
-      <section id="about" className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-        <Reveal>
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
-            <div className="md:col-span-4">
-              <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                III. The studio
+      <section id="about" className="border-t border-border bg-secondary/40">
+        <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+          <Reveal>
+            <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
+              <div className="md:col-span-4">
+                <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                  II. The studio
+                </div>
+              </div>
+              <div className="md:col-span-8">
+                <p className="max-w-[26ch] font-display text-3xl leading-snug font-medium tracking-tight text-balance md:text-[2.6rem]">
+                  We build the quiet machinery behind intelligent products.{" "}
+                  <span className="text-muted-foreground">
+                    Precise where it matters. Shipped where it counts.
+                  </span>
+                </p>
+                <a
+                  href="mailto:hello@vorqix.ai"
+                  className="mt-10 inline-flex items-center gap-2 border-b border-foreground/30 pb-1 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  Start a conversation
+                  <ArrowUpRight className="size-3.5" />
+                </a>
               </div>
             </div>
-            <div className="md:col-span-8">
-              <p className="max-w-[26ch] font-display text-3xl leading-snug font-medium tracking-tight text-balance md:text-[2.6rem]">
-                We build the quiet machinery behind intelligent products.{" "}
-                <span className="text-muted-foreground">
-                  Open where it helps. Precise where it matters.
-                </span>
-              </p>
-              <a
-                href="mailto:hello@vorqix.ai"
-                className="mt-10 inline-flex items-center gap-2 border-b border-foreground/30 pb-1 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-primary hover:text-primary"
-              >
-                Start a conversation
-                <ArrowUpRight className="size-3.5" />
-              </a>
-            </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
       </section>
 
       {/* footer */}
@@ -414,16 +453,11 @@ function Index() {
               </p>
             </div>
             <div className="flex flex-wrap gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-foreground/60">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noreferrer"
-                className="transition-colors hover:text-ink-foreground"
-              >
-                GitHub
+              <a href="#work" className="transition-colors hover:text-ink-foreground">
+                Work
               </a>
-              <a href="#apps" className="transition-colors hover:text-ink-foreground">
-                Lovable
+              <a href="#index" className="transition-colors hover:text-ink-foreground">
+                Index
               </a>
               <a href="#about" className="transition-colors hover:text-ink-foreground">
                 Studio
@@ -438,10 +472,34 @@ function Index() {
           </div>
           <div className="mt-14 flex flex-col justify-between gap-3 border-t border-ink-foreground/15 pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-foreground/40 md:flex-row">
             <span>© 2026 Vorqix A.I — All rights reserved</span>
-            <span>Designed & engineered by Vorqix</span>
+            <span>Designed &amp; engineered by Vorqix</span>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`border px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors ${
+        active
+          ? "border-ink bg-ink text-ink-foreground"
+          : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
