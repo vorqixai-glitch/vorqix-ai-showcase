@@ -70,7 +70,10 @@ export const getPortfolio = createServerFn({ method: "GET" }).handler(
       .map((r) => ({
         id: r.id,
         name: r.name,
-        description: r.description,
+        description:
+          r.description && r.description.trim() !== ""
+            ? r.description
+            : (REPO_DESCRIPTIONS[r.name] ?? null),
         url: r.html_url,
         homepage: r.homepage && r.homepage.trim() !== "" ? r.homepage : null,
         language: r.language,
