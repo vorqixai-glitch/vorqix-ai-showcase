@@ -35,29 +35,32 @@ export type PortfolioData = {
   languages: string[];
 };
 
-async function gh(path: string) {
+async function ghRaw(path: string, accept = "application/vnd.github+json") {
   const lovableKey = process.env["LOVABLE_API_KEY"];
   const connectionKey = process.env["GITHUB_API_KEY"];
   if (!lovableKey || !connectionKey) {
     throw new Error("GitHub connection is not configured on the server.");
   }
 
-  const res = await fetch(`${GATEWAY_URL}${path}`, {
+  return fetch(`${GATEWAY_URL}${path}`, {
     headers: {
-      Accept: "application/vnd.github+json",
+      Accept: accept,
       Authorization: `Bearer ${lovableKey}`,
       "X-Connection-Api-Key": connectionKey,
     },
   });
+}
 
+async function gh(path: string) {
+  const res = await ghRaw(path);
   if (!res.ok) {
     const body = await res.text();
     console.error(`GitHub gateway failed [${res.status}]: ${body}`);
     throw new Error(`GitHub request failed [${res.status}]: ${body}`);
   }
-
   return res.json();
 }
+
 
 export const getPortfolio = createServerFn({ method: "GET" }).handler(
   async (): Promise<PortfolioData> => {
@@ -108,3 +111,66 @@ export const getPortfolio = createServerFn({ method: "GET" }).handler(
     };
   },
 );
+
+export type RepoDetail = {
+  repo: Repo & { owner: string; defaultBranch: string; createdAt: string; size: number };
+  readme: string | null;
+  screenshots: string[];
+  languages: { name: string; percent: number }[];
+};
+
+export const getRepoDetail = createServerFn({ method: "GET" })
+  .inputValidator((data: { name: string }) => {
+    if (!data?.name || !/^[\w.-]+$/.test(data.name)) throw new Error("Invalid project name");
+    return { name: data.name };
+  })
+  .handler(async ({ data }): Promise<RepoDetail> => {
+    const profile = (await gh("/user")) as any;
+    const owner = profile.login as string;
+    const r = (await gh(`/repos/${owner}/${data.name}`)) as any;
+
+    const [readmeRes, langRaw] = await Promise.all([
+      ghRaw(`/repos/${owner}/${data.name}/readme`, "application/vnd.github.raw"),
+      gh(`/repos/${owner}/${data.name}/languages`).catch(() => ({})),
+    ]);
+
+    let readme: string | null = null;
+    if (readmeRes.ok) {
+      const text = await readmeRes.text();
+      readme = text.trim() === "" ? null : text.slice(0, 60_000);
+    }
+
+    const langEntries = Object.entries(langRaw as Record<string, number>);
+    const totalBytes = langEntries.reduce((sum, [, v]) => sum + v, 0) || 1;
+    const languages = langEntries
+      .map(([name, v]) => ({ name, percent: Math.round((v / totalBytes) * 1000) / 10 }))
+      .sort((a, b) => b.percent - a.percent);
+
+    const screenshots = [`https://opengraph.githubassets.com/1/${owner}/${data.name}`];
+
+    return {
+      repo: {
+        id: r.id,
+        name: r.name,
+        description:
+          r.description && r.description.trim() !== ""
+            ? r.description
+            : (REPO_DESCRIPTIONS[r.name] ?? null),
+        url: r.html_url,
+        homepage: r.homepage && r.homepage.trim() !== "" ? r.homepage : null,
+        language: r.language,
+        topics: Array.isArray(r.topics) ? r.topics : [],
+        stars: r.stargazers_count ?? 0,
+        forks: r.forks_count ?? 0,
+        isPrivate: Boolean(r.private),
+        updatedAt: r.pushed_at ?? r.updated_at,
+        owner,
+        defaultBranch: r.default_branch ?? "main",
+        createdAt: r.created_at,
+        size: r.size ?? 0,
+      },
+      readme,
+      screenshots,
+      languages,
+    };
+  });
