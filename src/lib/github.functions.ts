@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { REPO_DESCRIPTIONS } from "./repo-descriptions";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/github";
 
