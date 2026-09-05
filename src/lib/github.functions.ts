@@ -35,29 +35,32 @@ export type PortfolioData = {
   languages: string[];
 };
 
-async function gh(path: string) {
+async function ghRaw(path: string, accept = "application/vnd.github+json") {
   const lovableKey = process.env["LOVABLE_API_KEY"];
   const connectionKey = process.env["GITHUB_API_KEY"];
   if (!lovableKey || !connectionKey) {
     throw new Error("GitHub connection is not configured on the server.");
   }
 
-  const res = await fetch(`${GATEWAY_URL}${path}`, {
+  return fetch(`${GATEWAY_URL}${path}`, {
     headers: {
-      Accept: "application/vnd.github+json",
+      Accept: accept,
       Authorization: `Bearer ${lovableKey}`,
       "X-Connection-Api-Key": connectionKey,
     },
   });
+}
 
+async function gh(path: string) {
+  const res = await ghRaw(path);
   if (!res.ok) {
     const body = await res.text();
     console.error(`GitHub gateway failed [${res.status}]: ${body}`);
     throw new Error(`GitHub request failed [${res.status}]: ${body}`);
   }
-
   return res.json();
 }
+
 
 export const getPortfolio = createServerFn({ method: "GET" }).handler(
   async (): Promise<PortfolioData> => {
