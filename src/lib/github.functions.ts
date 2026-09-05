@@ -66,7 +66,6 @@ export const getPortfolio = createServerFn({ method: "GET" }).handler(
     ]);
 
     const repos: Repo[] = (reposRaw as any[])
-      .filter((r) => !r.fork && !r.archived)
       .map((r) => ({
         id: r.id,
         name: r.name,
