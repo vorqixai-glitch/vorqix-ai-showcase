@@ -356,6 +356,13 @@ function Index() {
                     </p>
                     <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5 font-mono text-[11px] text-muted-foreground">
                       <span className="inline-flex items-center gap-2">
+                        <span className="grid size-4 place-items-center bg-ink font-display text-[8px] font-semibold text-ink-foreground">
+                          V
+                        </span>
+                        <span className="uppercase tracking-[0.18em] text-foreground/80">
+                          Powered by Vorqix A.I
+                        </span>
+                        <span className="text-muted-foreground/60">·</span>
                         {r.isPrivate ? (
                           <>
                             <Lock className="size-3.5" /> Private
