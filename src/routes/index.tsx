@@ -366,6 +366,76 @@ function Index() {
         )}
       </section>
 
+      {/* external platforms */}
+      <section id="platforms" className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
+          <Reveal>
+            <div className="mb-12 border-b border-foreground/15 pb-6">
+              <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-primary">
+                II. Beyond the repository
+              </div>
+              <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
+                Hosted work
+              </h2>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
+            {EXTERNAL_PLATFORMS.map((platform) => (
+              <Reveal key={platform.id}>
+                <div className="flex h-full flex-col border border-border bg-card p-8">
+                  <h3 className="font-display text-2xl font-medium tracking-tight">
+                    {platform.label}
+                  </h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{platform.blurb}</p>
+
+                  {platform.projects.length === 0 ? (
+                    <p className="mt-8 border border-dashed border-border p-6 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Projects being added
+                    </p>
+                  ) : (
+                    <ul className="mt-8 flex-1 space-y-px">
+                      {platform.projects.map((p) => (
+                        <li key={p.url}>
+                          <a
+                            href={p.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="group flex items-start justify-between gap-6 border-t border-border py-5 transition-colors hover:bg-background"
+                          >
+                            <span>
+                              <span className="font-display text-lg font-medium tracking-tight">
+                                {p.name}
+                              </span>
+                              <span className="mt-1 block max-w-[42ch] text-sm text-pretty text-muted-foreground">
+                                {p.description}
+                              </span>
+                              {p.tags && p.tags.length > 0 && (
+                                <span className="mt-3 flex flex-wrap gap-2">
+                                  {p.tags.map((t) => (
+                                    <span
+                                      key={t}
+                                      className="border border-border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"
+                                    >
+                                      {t}
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
+                            </span>
+                            <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* statement */}
       <section id="about" className="border-t border-border bg-secondary/40">
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
