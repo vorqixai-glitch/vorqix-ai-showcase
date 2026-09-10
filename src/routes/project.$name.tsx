@@ -128,9 +128,9 @@ function ProjectPage() {
               </div>
             )}
 
-            {data.topics.length > 0 && (
+            {data.repo.topics.length > 0 && (
               <div className="mt-8 flex flex-wrap gap-2">
-                {data.topics.map((t) => (
+                {data.repo.topics.map((t) => (
                   <span
                     key={t}
                     className="border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"

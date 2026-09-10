@@ -102,6 +102,89 @@
   }
 }
 
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 2rem 0 0.75rem;
+  line-height: 1.2;
+}
+.markdown h1 {
+  font-size: 1.9rem;
+}
+.markdown h2 {
+  font-size: 1.45rem;
+}
+.markdown h3 {
+  font-size: 1.15rem;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote {
+  margin: 0.9rem 0;
+  color: var(--muted-foreground);
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.35rem;
+}
+.markdown ul {
+  list-style: disc;
+}
+.markdown ol {
+  list-style: decimal;
+}
+.markdown a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--secondary);
+  padding: 0.15em 0.4em;
+}
+.markdown pre {
+  background: var(--ink);
+  color: var(--ink-foreground);
+  padding: 1.1rem;
+  overflow-x: auto;
+  margin: 1.2rem 0;
+}
+.markdown pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+.markdown blockquote {
+  border-left: 2px solid var(--primary);
+  padding-left: 1rem;
+}
+.markdown img {
+  max-width: 100%;
+  height: auto;
+}
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  margin: 1.2rem 0;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+}
+.markdown hr {
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
 @keyframes pulse-dot {
   0%,
   100% {
