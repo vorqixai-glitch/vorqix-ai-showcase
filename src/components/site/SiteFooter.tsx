@@ -32,12 +32,9 @@ export function SiteFooter() {
             <Link to="/" hash="about" className="transition-colors hover:text-ink-foreground">
               About
             </Link>
-            <a
-              href="mailto:hello@vorqix.ai"
-              className="transition-colors hover:text-ink-foreground"
-            >
+            <Link to="/contact" className="transition-colors hover:text-ink-foreground">
               Contact
-            </a>
+            </Link>
           </div>
         </div>
         <div className="mt-14 flex flex-col justify-between gap-3 border-t border-ink-foreground/15 pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-foreground/40 md:flex-row">
