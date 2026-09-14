@@ -104,6 +104,13 @@ export function SiteHeader() {
           )}
         </div>
 
+        <Link
+          to="/contact"
+          className="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+        >
+          Contact
+        </Link>
+
         <a
           href={data?.profile.url ?? "https://github.com"}
           target="_blank"
