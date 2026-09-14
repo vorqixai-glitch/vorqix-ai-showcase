@@ -14,8 +14,12 @@ export const Route = createFileRoute("/project/$name")({
     const pretty = params.name
       .replace(/[-_]+/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
-    const title = `${pretty} — Vorqix A.I`;
-    const description = `${pretty}: an engineering project by Vorqix A.I — overview, README and source.`;
+    const title = `${pretty} — Project by Vorqix A.I`;
+    const description =
+      REPO_DESCRIPTIONS[params.name] ??
+      `${pretty}: an engineering project by Vorqix A.I — architecture overview, README, stack breakdown and source code.`;
+    const url = `https://vorqix-project-gallery.lovable.app/project/${params.name}`;
+    const image = `https://opengraph.githubassets.com/1/${GITHUB_OWNER}/${params.name}`;
     return {
       meta: [
         { title },
@@ -23,7 +27,26 @@ export const Route = createFileRoute("/project/$name")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
+        { property: "og:image", content: image },
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:image", content: image },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareSourceCode",
+            name: pretty,
+            description,
+            url,
+            image,
+            author: { "@type": "Organization", name: "Vorqix A.I" },
+            codeRepository: `https://github.com/${GITHUB_OWNER}/${params.name}`,
+          }),
+        },
       ],
     };
   },
