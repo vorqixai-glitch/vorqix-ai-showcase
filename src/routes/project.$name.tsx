@@ -6,6 +6,9 @@ import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowUpRight, GitFork, Github, Star } from "lucide-react";
 
 import { getRepoDetail } from "@/lib/github.functions";
+import { REPO_DESCRIPTIONS } from "@/lib/repo-descriptions";
+
+const GITHUB_OWNER = "vorqixai-glitch";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
