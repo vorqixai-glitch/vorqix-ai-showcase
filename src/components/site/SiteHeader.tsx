@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Github, Search } from "lucide-react";
 
 import { getPortfolio } from "@/lib/github.functions";
+import { useI18n } from "@/lib/i18n";
 import { VorqixWordmark } from "./Logo";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 function titleize(slug: string) {
   return slug
@@ -15,6 +17,7 @@ function titleize(slug: string) {
 }
 
 export function SiteHeader() {
+  const { t } = useI18n();
   const fetchPortfolio = useServerFn(getPortfolio);
   const { data } = useQuery({
     queryKey: ["portfolio"],
