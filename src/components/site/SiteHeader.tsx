@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Github, Search } from "lucide-react";
 
 import { getPortfolio } from "@/lib/github.functions";
+import { useI18n } from "@/lib/i18n";
 import { VorqixWordmark } from "./Logo";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 function titleize(slug: string) {
   return slug
@@ -15,6 +17,7 @@ function titleize(slug: string) {
 }
 
 export function SiteHeader() {
+  const { t } = useI18n();
   const fetchPortfolio = useServerFn(getPortfolio);
   const { data } = useQuery({
     queryKey: ["portfolio"],
@@ -75,8 +78,8 @@ export function SiteHeader() {
                 if (e.key === "Enter" && results[0]) go(results[0].name);
                 if (e.key === "Escape") setOpen(false);
               }}
-              placeholder="Search projects…"
-              aria-label="Search projects"
+              placeholder={t("nav.searchPlaceholder")}
+              aria-label={t("nav.searchPlaceholder")}
               className="w-full bg-transparent font-mono text-[12px] outline-none placeholder:text-muted-foreground/70"
             />
           </div>
@@ -84,7 +87,7 @@ export function SiteHeader() {
             <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-[18rem] border border-border bg-card shadow-lg">
               {results.length === 0 && (
                 <p className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
-                  No project matches “{q}”
+                  {t("nav.noMatch")} — “{q}”
                 </p>
               )}
               {results.map((r) => (
@@ -108,7 +111,7 @@ export function SiteHeader() {
           to="/contact"
           className="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
         >
-          Contact
+          {t("nav.contact")}
         </Link>
 
         <a
@@ -118,8 +121,10 @@ export function SiteHeader() {
           className="hidden shrink-0 items-center gap-2 border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] text-foreground transition-colors hover:border-ink hover:bg-ink hover:text-ink-foreground sm:inline-flex"
         >
           <Github className="size-3.5" />
-          GitHub
+          {t("nav.github")}
         </a>
+
+        <LanguageSwitcher />
       </nav>
     </header>
   );
