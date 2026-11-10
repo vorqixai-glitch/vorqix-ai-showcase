@@ -137,7 +137,11 @@ export const getRepoDetail = createServerFn({ method: "GET" })
     let readme: string | null = null;
     if (readmeRes.ok) {
       const text = await readmeRes.text();
-      readme = text.trim() === "" ? null : text.slice(0, 60_000);
+      const cleaned = text
+        .split("\n")
+        .filter((line) => !/lovable/i.test(line))
+        .join("\n");
+      readme = cleaned.trim() === "" ? null : cleaned.slice(0, 60_000);
     }
 
     const langEntries = Object.entries(langRaw as Record<string, number>);

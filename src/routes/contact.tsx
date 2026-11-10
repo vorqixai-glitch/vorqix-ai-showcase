@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpRight, Github, Linkedin, Mail } from "lucide-react";
+import { ArrowUpRight, Github, Mail } from "lucide-react";
 
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 
 const TITLE = "Contact — Vorqix A.I";
 const DESCRIPTION =
-  "Get in touch with Vorqix A.I — applied intelligence, systems engineering and shipped software. Email, LinkedIn and GitHub.";
+  "Get in touch with Vorqix A.I — applied intelligence, systems engineering and shipped software. Email and GitHub.";
 const URL = "https://vorqix-project-gallery.lovable.app/contact";
 
 export const Route = createFileRoute("/contact")({
@@ -47,12 +47,6 @@ const CHANNELS = [
     icon: Mail,
   },
   {
-    label: "LinkedIn",
-    value: "linkedin.com/company/vorqix-ai",
-    href: "https://www.linkedin.com/company/vorqix-ai",
-    icon: Linkedin,
-  },
-  {
     label: "GitHub",
     value: "github.com/vorqixai-glitch",
     href: "https://github.com/vorqixai-glitch",
@@ -77,7 +71,7 @@ function ContactPage() {
           {t("contact.lede")}
         </p>
 
-        <div className="mt-12 grid grid-cols-1 gap-px border border-border bg-border sm:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-px border border-border bg-border sm:grid-cols-2">
           {CHANNELS.map((c) => (
             <a
               key={c.label}

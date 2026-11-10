@@ -64,6 +64,7 @@ function ProjectPage() {
   const { name } = Route.useParams();
   const fetchDetail = useServerFn(getRepoDetail);
   const { data, isLoading, error } = useQuery({
+    retry: 1,
     queryKey: ["repo-detail", name],
     queryFn: () => fetchDetail({ data: { name } }),
     staleTime: 5 * 60_000,
