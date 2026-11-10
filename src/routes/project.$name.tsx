@@ -64,6 +64,7 @@ function ProjectPage() {
   const { name } = Route.useParams();
   const fetchDetail = useServerFn(getRepoDetail);
   const { data, isLoading, error } = useQuery({
+    retry: 1,
     queryKey: ["repo-detail", name],
     queryFn: () => fetchDetail({ data: { name } }),
     staleTime: 5 * 60_000,
@@ -91,7 +92,7 @@ function ProjectPage() {
 
         {error && (
           <p className="mt-10 border border-destructive/40 bg-destructive/5 p-6 font-mono text-[12px] text-destructive">
-            Could not load this project. {(error as Error).message}
+            This project could not be found. It may have been renamed or removed.
           </p>
         )}
 

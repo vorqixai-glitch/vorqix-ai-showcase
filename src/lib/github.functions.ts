@@ -78,7 +78,8 @@ export const getPortfolio = createServerFn({ method: "GET" }).handler(
             ? r.description
             : (REPO_DESCRIPTIONS[r.name] ?? null),
         url: r.html_url,
-        homepage: r.homepage && r.homepage.trim() !== "" ? r.homepage : null,
+        homepage:
+          r.homepage && r.homepage.trim() !== "" && !/lovable/i.test(r.homepage) ? r.homepage : null,
         language: r.language,
         topics: Array.isArray(r.topics) ? r.topics.slice(0, 4) : [],
         stars: r.stargazers_count ?? 0,
@@ -137,7 +138,11 @@ export const getRepoDetail = createServerFn({ method: "GET" })
     let readme: string | null = null;
     if (readmeRes.ok) {
       const text = await readmeRes.text();
-      readme = text.trim() === "" ? null : text.slice(0, 60_000);
+      const cleaned = text
+        .split("\n")
+        .filter((line) => !/lovable/i.test(line))
+        .join("\n");
+      readme = cleaned.trim() === "" ? null : cleaned.slice(0, 60_000);
     }
 
     const langEntries = Object.entries(langRaw as Record<string, number>);
@@ -157,7 +162,8 @@ export const getRepoDetail = createServerFn({ method: "GET" })
             ? r.description
             : (REPO_DESCRIPTIONS[r.name] ?? null),
         url: r.html_url,
-        homepage: r.homepage && r.homepage.trim() !== "" ? r.homepage : null,
+        homepage:
+          r.homepage && r.homepage.trim() !== "" && !/lovable/i.test(r.homepage) ? r.homepage : null,
         language: r.language,
         topics: Array.isArray(r.topics) ? r.topics : [],
         stars: r.stargazers_count ?? 0,
