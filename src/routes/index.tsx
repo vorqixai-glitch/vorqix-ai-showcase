@@ -9,6 +9,7 @@ import { EXTERNAL_PLATFORMS } from "@/lib/external-projects";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { VorqixMark } from "@/components/site/Logo";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,15 +43,15 @@ function titleize(slug: string) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function relative(iso: string) {
+function relative(iso: string, t: (k: TranslationKey) => string) {
   const diff = Date.now() - Date.parse(iso);
   const day = 86_400_000;
-  if (diff < day) return "today";
+  if (diff < day) return t("time.today");
   const d = Math.round(diff / day);
-  if (d < 30) return `${d}d ago`;
+  if (d < 30) return `${d}${t("time.d")}`;
   const m = Math.round(d / 30);
-  if (m < 12) return `${m}mo ago`;
-  return `${Math.round(m / 12)}y ago`;
+  if (m < 12) return `${m} ${t("time.mo")}`;
+  return `${Math.round(m / 12)} ${t("time.y")}`;
 }
 
 function Reveal({
@@ -90,11 +91,14 @@ function Reveal({
 /* ------------------------------ page ------------------------------ */
 
 function Index() {
+  const { t } = useI18n();
   const fetchPortfolio = useServerFn(getPortfolio);
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["portfolio"],
     queryFn: () => fetchPortfolio(),
-    staleTime: 5 * 60_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
   });
 
   const [query, setQuery] = useState("");
@@ -123,20 +127,6 @@ function Index() {
 
   const shown = visible.slice(0, limit);
 
-  const externalCount = EXTERNAL_PLATFORMS.reduce((n, p) => n + p.projects.length, 0);
-
-  const stats = [
-    { value: String(data?.totalRepos ?? "—"), label: "Projects shipped" },
-    { value: String(data?.languages.length ?? "—"), label: "Languages in play" },
-    {
-      value: String((data?.totalRepos ?? 0) + externalCount || "—"),
-      label: "Public case studies",
-    },
-    {
-      value: data ? `${new Date(data.profile.createdAt).getFullYear()}` : "—",
-      label: "Building since",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -147,21 +137,20 @@ function Index() {
         <Reveal>
           <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
             <span className="inline-block h-px w-10 bg-primary" />
-            Independent AI studio
+            {t("hero.eyebrow")}
           </div>
         </Reveal>
         <Reveal delay={120}>
           <h1 className="mt-10 max-w-[18ch] font-display text-5xl leading-[1.02] font-medium tracking-tight text-balance md:text-7xl">
-            Machine intelligence,{" "}
-            <em className="text-primary not-italic md:italic">engineered</em> with intent —
-            and shipped.
+            {t("hero.title.a")}{" "}
+            <em className="text-primary not-italic md:italic">{t("hero.title.em")}</em>{" "}
+            {t("hero.title.b")}
           </h1>
         </Reveal>
         <div className="mt-12 flex flex-col justify-between gap-10 border-t border-border pt-10 md:flex-row md:items-end">
           <Reveal delay={240}>
             <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground md:text-lg">
-              {data?.profile.bio ??
-                "Vorqix A.I designs and builds AI systems, automation tooling and production software. Everything below is pulled live from the studio's working repositories — no mockups, no placeholders."}
+              {t("hero.bio")}
             </p>
           </Reveal>
           <Reveal delay={360}>
@@ -170,36 +159,19 @@ function Index() {
                 href="#work"
                 className="inline-flex items-center gap-2 bg-ink px-6 py-3.5 font-mono text-[11px] uppercase tracking-[0.15em] text-ink-foreground transition-colors hover:bg-primary"
               >
-                Explore the work
+                {t("hero.cta.work")}
                 <ArrowUpRight className="size-3.5" />
               </a>
               <a
                 href="#index"
                 className="inline-flex items-center gap-2 border border-foreground/20 px-6 py-3.5 font-mono text-[11px] uppercase tracking-[0.15em] text-foreground transition-colors hover:border-foreground"
               >
-                Full index
+                {t("hero.cta.index")}
               </a>
             </div>
           </Reveal>
         </div>
 
-        <Reveal delay={480}>
-          <div className="mt-20 grid grid-cols-2 border border-border md:grid-cols-4">
-            {stats.map((s, i) => (
-              <div
-                key={s.label}
-                className={`px-6 py-7 ${i % 2 === 1 ? "border-l border-border" : ""} ${i > 1 ? "border-t border-border md:border-t-0" : ""} ${i > 0 ? "md:border-l md:border-border" : ""}`}
-              >
-                <div className="font-display text-3xl font-medium tabular-nums md:text-4xl">
-                  {s.value}
-                </div>
-                <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
       </section>
 
       {/* work / live index */}
@@ -208,10 +180,10 @@ function Index() {
           <div className="mb-10 flex items-end justify-between border-b border-foreground/15 pb-6">
             <div>
               <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-primary">
-                I. The work
+                {t("work.eyebrow")}
               </div>
               <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
-                Live project index
+                {t("work.title")}
               </h2>
             </div>
             <button
@@ -221,7 +193,7 @@ function Index() {
               className="inline-flex items-center gap-2 border border-foreground/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
             >
               <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
-              Sync
+              {t("work.sync")}
             </button>
           </div>
         </Reveal>
@@ -236,8 +208,8 @@ function Index() {
                 setQuery(e.target.value);
                 setLimit(9);
               }}
-              placeholder="Search projects, languages, descriptions…"
-              aria-label="Search projects"
+              placeholder={t("work.searchPlaceholder")}
+              aria-label={t("work.searchPlaceholder")}
               className="w-full bg-transparent font-mono text-[13px] outline-none placeholder:text-muted-foreground/70"
             />
             {query && (
@@ -246,14 +218,14 @@ function Index() {
                 onClick={() => setQuery("")}
                 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
               >
-                Clear
+                {t("work.clear")}
               </button>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <FilterChip active={language === null} onClick={() => setLanguage(null)}>
-              All
+              {t("work.all")}
             </FilterChip>
             {(data?.languages ?? []).map((l) => (
               <FilterChip
@@ -270,7 +242,7 @@ function Index() {
             <span className="ml-auto flex items-center gap-2">
               {(["recent", "stars", "name"] as const).map((s) => (
                 <FilterChip key={s} active={sort === s} onClick={() => setSort(s)}>
-                  {s}
+                  {t(`work.sort.${s}` as TranslationKey)}
                 </FilterChip>
               ))}
             </span>
@@ -279,7 +251,7 @@ function Index() {
 
         {error && (
           <div className="border border-destructive/40 bg-destructive/5 p-6 font-mono text-[12px] text-destructive">
-            Could not load the project index. {(error as Error).message}
+            {t("work.error")} {(error as Error).message}
           </div>
         )}
 
@@ -307,7 +279,7 @@ function Index() {
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                          {r.language ?? "System"}
+                          {r.language ?? t("work.system")}
                         </span>
                       </div>
                       <ArrowUpRight className="size-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
@@ -316,18 +288,18 @@ function Index() {
                       {titleize(r.name)}
                     </h3>
                     <p className="mt-3 max-w-[48ch] flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
-                      {r.description ?? "An internal system under active development."}
+                      {r.description ?? t("work.fallbackDesc")}
                     </p>
                     <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5 font-mono text-[11px] text-muted-foreground">
                       <span className="inline-flex items-center gap-2">
                         <VorqixMark className="size-4 text-ink" />
                         <span className="uppercase tracking-[0.18em] text-foreground/80">
-                          Powered by Vorqix A.I
+                          {t("work.powered")}
                         </span>
                         <span className="text-muted-foreground/60">·</span>
-                        <Globe className="size-3.5 text-primary" /> Public
+                        <Globe className="size-3.5 text-primary" /> {t("work.public")}
                         <span className="text-muted-foreground/60">·</span>
-                        {relative(r.updatedAt)}
+                        {relative(r.updatedAt, t)}
                       </span>
                       <span className="flex items-center gap-4 tabular-nums">
                         <span className="inline-flex items-center gap-1.5">
@@ -347,7 +319,7 @@ function Index() {
 
             {visible.length === 0 && (
               <p className="border border-border bg-card p-10 text-center font-mono text-[12px] uppercase tracking-[0.18em] text-muted-foreground">
-                No projects match that filter
+                {t("work.empty")}
               </p>
             )}
 
@@ -358,7 +330,7 @@ function Index() {
                   onClick={() => setLimit((l) => l + 9)}
                   className="inline-flex items-center gap-2 border border-foreground/20 px-6 py-3.5 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors hover:bg-ink hover:text-ink-foreground"
                 >
-                  Load more — {visible.length - limit} remaining
+                  {t("work.loadMore")} — {visible.length - limit} {t("work.remaining")}
                 </button>
               </div>
             )}
@@ -372,10 +344,10 @@ function Index() {
           <Reveal>
             <div className="mb-12 border-b border-foreground/15 pb-6">
               <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-primary">
-                II. Beyond the repository
+                {t("platforms.eyebrow")}
               </div>
               <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
-                Hosted work
+                {t("platforms.title")}
               </h2>
             </div>
           </Reveal>
@@ -391,7 +363,7 @@ function Index() {
 
                   {platform.projects.length === 0 ? (
                     <p className="mt-8 border border-dashed border-border p-6 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                      Projects being added
+                      {t("platforms.pending")}
                     </p>
                   ) : (
                     <ul className="mt-8 flex-1 space-y-px">
@@ -443,21 +415,21 @@ function Index() {
             <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
               <div className="md:col-span-4">
                 <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                  II. The studio
+                  {t("studio.eyebrow")}
                 </div>
               </div>
               <div className="md:col-span-8">
                 <p className="max-w-[26ch] font-display text-3xl leading-snug font-medium tracking-tight text-balance md:text-[2.6rem]">
-                  We build the quiet machinery behind intelligent products.{" "}
+                  {t("studio.line.a")}{" "}
                   <span className="text-muted-foreground">
-                    Precise where it matters. Shipped where it counts.
+                    {t("studio.line.b")}
                   </span>
                 </p>
                 <a
                   href="mailto:hello@vorqix.ai"
                   className="mt-10 inline-flex items-center gap-2 border-b border-foreground/30 pb-1 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-primary hover:text-primary"
                 >
-                  Start a conversation
+                  {t("studio.cta")}
                   <ArrowUpRight className="size-3.5" />
                 </a>
               </div>
