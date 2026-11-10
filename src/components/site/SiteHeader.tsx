@@ -22,7 +22,8 @@ export function SiteHeader() {
   const { data } = useQuery({
     queryKey: ["portfolio"],
     queryFn: () => fetchPortfolio(),
-    staleTime: 5 * 60_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 
   const navigate = useNavigate();
