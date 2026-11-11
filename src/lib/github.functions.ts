@@ -62,8 +62,8 @@ async function gh(path: string) {
 }
 
 
-export const getPortfolio = createServerFn({ method: "GET" }).handler(
-  async (): Promise<PortfolioData> => {
+async function loadPortfolio(): Promise<PortfolioData> {
+  {
     const [profileRaw, reposRaw] = await Promise.all([
       gh("/user"),
       gh("/user/repos?per_page=100&sort=updated&affiliation=owner"),
@@ -110,8 +110,25 @@ export const getPortfolio = createServerFn({ method: "GET" }).handler(
       totalRepos: repos.length,
       languages,
     };
-  },
-);
+  }
+}
+
+export const getPortfolio = createServerFn({ method: "GET" }).handler(() => loadPortfolio());
+
+export type Recommendation = { name: string; reason: string };
+
+export const recommendProjects = createServerFn({ method: "POST" })
+  .inputValidator((data: { brief: string }) => {
+    const brief = typeof data?.brief === "string" ? data.brief.trim() : "";
+    if (brief.length < 5) throw new Error("Please describe what you want to build in a few words.");
+    if (brief.length > 1000) throw new Error("Please keep your description under 1000 characters.");
+    return { brief };
+  })
+  .handler(async ({ data }): Promise<{ summary: string; picks: Recommendation[] }> => {
+    const { repos } = await loadPortfolio();
+    const { recommend } = await import("./ai/recommend.server");
+    return recommend(data.brief, repos);
+  });
 
 export type RepoDetail = {
   repo: Repo & { owner: string; defaultBranch: string; createdAt: string; size: number };
