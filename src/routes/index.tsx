@@ -9,6 +9,7 @@ import { EXTERNAL_PLATFORMS } from "@/lib/external-projects";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { VorqixMark } from "@/components/site/Logo";
+import { ProjectMatcher } from "@/components/site/ProjectMatcher";
 import { useI18n, type TranslationKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
@@ -173,6 +174,8 @@ function Index() {
         </div>
 
       </section>
+
+      <ProjectMatcher />
 
       {/* work / live index */}
       <section id="work" className="mx-auto max-w-6xl px-6 py-20 md:py-28">
